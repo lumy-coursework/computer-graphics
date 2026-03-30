@@ -1,0 +1,64 @@
+  ── KONSEP TRANSFORMASI YANG DIGUNAKAN ─-
+                                                                         
+  1. TRANSLATE  ─  ctx.translate(x, y)                                    
+     Memindahkan titik asal (origin) sistem koordinat ke posisi baru.     
+     • ctx.translate(300, 300)  → memindahkan origin ke tengah kanvas     
+       agar lingkaran latar dan karakter bisa diposisikan dari pusat.     
+     • ctx.translate(0, 8)      → offset kecil ke bawah dari pusat,     
+       menjadi "pusat karakter" sehingga semua poligon karakter           
+       digambar relatif terhadap titik ini.                               
+     • Dalam fungsi drawSpike(), ctx.translate(bx, by) digunakan          
+       LAGI secara nested (bertingkat di dalam translate karakter),       
+       memindahkan origin ke pangkal setiap spike rambut sebelum          
+       spike tersebut dirotasi.                                            
+                                                                          
+  2. ROTATE  ─  ctx.rotate(angle)                                         
+     Memutar sistem koordinat sebesar sudut tertentu (dalam radian).      
+     • Digunakan di dalam fungsi drawSpike() SETELAH translate ke         
+       pangkal spike. Dengan begitu, pivot rotasi adalah pangkal spike    
+       itu sendiri (bukan origin kanvas), dan setiap spike dapat         
+       diarahkan ke sudut berbeda-beda (negatif = kiri, positif = kanan). 
+     • Kombinasi translate → rotate inilah yang menciptakan rambut spiky  
+       menyebar dari kiri ke kanan seperti tampilan anime.                
+                                                                          
+  3. SCALE  ─  ctx.scale(sx, sy)                                          
+     Mengubah skala sistem koordinat pada sumbu X dan/atau Y.             
+     • ctx.scale(-1, 1) digunakan untuk REFLEKSI / PENCERMINAN            
+       horizontal: tangan kanan dan kaki kanan digambar dengan             
+       koordinat X positif, lalu di-save/scale(-1,1)/restore sehingga    
+       koordinat yang sama otomatis terpantul ke sisi kiri.               
+       Ini menghindari penulisan koordinat duplikat untuk elemen simetris. 
+                                                                          
+  4. SAVE & RESTORE  ─  ctx.save() / ctx.restore()                        
+     Menyimpan dan memulihkan seluruh state transformasi & gaya kanvas.   
+     • Setiap blok transformasi diawali ctx.save() dan diakhiri           
+       ctx.restore() agar transformasi satu elemen tidak "merembet"       
+       ke elemen berikutnya.                                               
+     • Memungkinkan penggunaan ctx.clip() yang terisolasi (lingkaran      
+       clip hanya berlaku di dalam blok save/restore tersebut).           
+                                                                          
+  5. COMPOSITE TRANSFORMATION  ─  Transformasi Komposit Bertingkat        
+     Setiap spike rambut menggunakan urutan:                              
+       save() → translate(base) → rotate(angle) → gambar → restore()     
+     Ini adalah transformasi komposit: translate menentukan posisi         
+     pangkal spike, rotate memutar spike di posisi tersebut.              
+     Urutan sangat penting karena transformasi kanvas bersifat kumulatif. 
+                                                                          
+  6. CLIPPING  ─  ctx.clip()                                              
+     Membatasi area gambar agar hanya tampak di dalam jalur clip          
+     (lingkaran, radius 262). Semua elemen karakter otomatis              
+     terpotong di batas lingkaran sehingga tampilan rapi.                 
+                                                                          
+  ── DETAIL PROSES DRAWING (Painter's Algorithm, belakang → depan) ─-
+                                                                          
+  1.  Background gelap (#0a0a10) mengisi seluruh kanvas 600×600           
+  2.  Translate ke pusat (300,300); gambar & clip ke lingkaran r=262      
+  3.  Translate offset (0,8) → pusat karakter                             
+  4.  Spike rambut putih (11 spike, masing-masing translate+rotate)       
+  5.  Body (badan) bulat gelap dengan facet shading                       
+  6.  Head (kepala) — poligon besar gelap dengan facet 3D                 
+  7.  Face skin (wajah merah muda) di bawah area headband                 
+  8.  Headband hitam menutupi area mata                                   
+  9.  Mulut — quadratic bezier curve                                      
+  10. Tangan kanan (langsung), tangan kiri (scale mirror)                 
+  11. Kaki kanan (langsung), kaki kiri (scale mirror)
