@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Low-Poly Chibi Character — HTML Canvas</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas" width="600" height="600"></canvas>
+
+<script>
+  const cvs = document.getElementById('canvas');
+  const ctx = cvs.getContext('2d');
+
+  // UTILITY: Gambar poligon dari array titik [x,y]
+  function pg(pts, fill, stroke, sw = 1) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    if (fill)   { ctx.fillStyle = fill;     ctx.fill();   }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
+  }
+
+  // UTILITY: Gambar spike rambut
+  // Menggunakan COMPOSITE TRANSFORMATION: TRANSLATE → ROTATE → gambar
+  //   bx, by = posisi pangkal spike (relatif ke origin aktif)
+  //   angle  = sudut rotasi dari vertikal (negatif=kiri, positif=kanan)
+  //   len    = panjang spike
+  //   wid    = lebar dasar spike
+  //   c1, c2 = warna sisi kiri & kanan spike (efek low-poly 3D)
+  function drawSpike(bx, by, angle, len, wid, c1, c2) {
+    ctx.save();
+    ctx.translate(bx, by);   // [TRANSFORMASI: TRANSLATE] ke pangkal spike
+    ctx.rotate(angle);        // [TRANSFORMASI: ROTATE]    putar ke arah spike
+    pg([[0, 0], [-wid * 0.53, len * 0.30], [0, -len]], c1);  // sisi kiri
+    pg([[0, 0], [ wid * 0.53, len * 0.30], [0, -len]], c2);  // sisi kanan
+    pg([[0, 0], [-wid * 0.53, len * 0.30], [wid * 0.53, len * 0.30]], '#18181e'); // dasar
+    ctx.restore();
+  }
+
+  // Bagian 1 ─ Background gelap, menutupi seluruh kanvas
+  ctx.fillStyle = '#0a0a10';
+  ctx.fillRect(0, 0, 600, 600);
+
+  // Bagian 2 ─ Lingkaran latar + CLIP
+  // [TRANSFORMASI: TRANSLATE ke pusat kanvas (300,300)]
+  // [CLIP: semua elemen karakter terpotong di dalam circle]
+  ctx.save();
+  ctx.translate(300, 300); // [TRANSLATE] ke pusat kanvas
+
+  // Gambar lingkaran dengan gradient radial
+  const bgGrad = ctx.createRadialGradient(0, -35, 15, 0, 0, 262);
+  bgGrad.addColorStop(0, '#2a2a34');
+  bgGrad.addColorStop(0.6, '#1e1e26');
+  bgGrad.addColorStop(1,  '#141418');
+  ctx.beginPath();
+  ctx.arc(0, 0, 262, 0, Math.PI * 2);
+  ctx.fillStyle = bgGrad;
+  ctx.fill();
+
+  // Terapkan clip agar semua drawing berikutnya terpotong di circle
+  ctx.beginPath();
+  ctx.arc(0, 0, 262, 0, Math.PI * 2);
+  ctx.clip(); // [CLIP]
+
+  // Semua elemen karakter digambar relatif ke pusat karakter
+  // [TRANSFORMASI: TRANSLATE offset kecil ke bawah]
+  ctx.translate(0, 8); // [TRANSLATE] pusat karakter = (300, 308) di kanvas
+
+  // Bagian 3 ─ Rambut (Hair Spikes)
+  // 11 spike dari kiri ke kanan, makin ke tengah makin tegak
+  // Setiap spike: drawSpike() → nested TRANSLATE + ROTATE
+  drawSpike(-140, -52, -1.12,  82, 42, '#aaaabb', '#959aaa');
+  drawSpike(-114, -74, -0.88, 106, 50, '#bcbccc', '#a8aabb');
+  drawSpike( -86, -96, -0.60, 126, 56, '#ccccd9', '#b9b9c8');
+  drawSpike( -56,-108, -0.35, 136, 59, '#d8d8e6', '#c5c5d4');
+  drawSpike( -22,-114, -0.13, 141, 61, '#e0e0ee', '#cdcddc');
+  drawSpike(   8,-116,  0.04, 144, 63, '#e5e5f3', '#d2d2e2');
+  drawSpike(  40,-113,  0.22, 139, 60, '#e1e1ef', '#cecede');
+  drawSpike(  68,-104,  0.46, 128, 56, '#d5d5e5', '#c2c2d2');
+  drawSpike(  96, -92,  0.70, 113, 51, '#c9c9d9', '#b6b6c6');
+  drawSpike( 120, -72,  0.93,  96, 46, '#bcbccc', '#a9a9ba');
+  drawSpike( 140, -50,  1.18,  75, 41, '#aeaebe', '#9898ac');
+
+  // Bagian 4 ─ Badan (Body)
+
+  // Badan utama
+  pg([
+    [-88, 87],[-110, 136],[-94, 178],[-52, 198],
+    [0, 203],[52, 198],[94, 178],[110, 136],[88, 87],
+    [60, 70],[-60, 70]
+  ], '#181820');
+  // Shading kiri (lebih gelap)
+  pg([[-88, 87],[-60, 70],[-32, 107],[-70, 144]], '#111117');
+  // Shading kanan (lebih terang)
+  pg([[88, 87],[60, 70],[32, 107],[70, 144]], '#21212d');
+  // Shading bawah badan
+  pg([[-52, 198],[0, 203],[52, 198],[34, 178],[-34, 178]], '#131318');
+
+  // Bagian 5 ─ Kepala (Head) — poligon besar gelap
+  pg([
+    [-130, 39],[-150, -18],[-134, -77],
+    [-90, -116],[-45, -126],[0, -130],
+    [45, -126],[90, -116],[134, -77],
+    [150, -18],[130, 39],[90, 72],[-90, 72]
+  ], '#1c1c24');
+  // Facets kepala — efek 3D low-poly
+  pg([[-130, 39],[-150, -18],[-110, -1],[-92, 43]], '#131318');   // sisi kiri gelap
+  pg([[130, 39],[150, -18],[110, -1],[92, 43]], '#252530');         // sisi kanan terang
+  pg([[-45,-126],[0,-130],[45,-126],[24,-114],[-24,-114]], '#23232d'); // puncak kepala
+  pg([[-90,-116],[-45,-126],[-30,-113],[-72,-102]], '#1a1a22');
+  pg([[90,-116],[45,-126],[30,-113],[72,-102]], '#20202a');
+
+  // Bagian 6 ─ Wajah (Face Skin) — merah muda di bawah headband
+  pg([
+    [-122, 19],[-130, 39],[-90, 72],
+    [-47, 84],[0, 88],[47, 84],
+    [90, 72],[130, 39],[122, 19],
+    [90, 6],[45, -4],[0, -7],
+    [-45, -4],[-90, 6]
+  ], '#c07870');
+  // Facets wajah untuk efek low-poly
+  pg([[-122, 19],[-90, 6],[-65, 29],[-84, 56]], '#cc8880');     // pipi kiri terang
+  pg([[122, 19],[90, 6],[65, 29],[84, 56]], '#b46c66');           // pipi kanan gelap
+  pg([[-45, -4],[45, -4],[31, 21],[0, 25],[-31, 21]], '#c87b73'); // tengah atas wajah
+  pg([[-84, 56],[-65, 29],[-31, 21],[-47, 63]], '#c07272');      // pipi kiri bawah
+  pg([[84, 56],[65, 29],[31, 21],[47, 63]], '#b86b65');            // pipi kanan bawah
+  pg([[-47, 63],[-47, 84],[0, 88],[47, 84],[47, 63],[0, 70]], '#bc7370'); // dagu
+
+  // Bagian 7 ─ Headband / Masker (menutupi area mata)
+
+  // Poligon hitam yang menutup setengah atas wajah
+  pg([
+    [-126, 17],[-150, -18],[-134, -77],
+    [-90, -116],[90, -116],[134, -77],
+    [150, -18],[126, 17],
+    [90, 6],[45, -4],[0, -7],[-45, -4],[-90, 6]
+  ], '#181820');
+  // Shading headband — sisi terang/gelap
+  pg([[-126, 17],[-150, -18],[-136, -22],[-119, 13]], '#232334');  // tepi kiri
+  pg([[126, 17],[150, -18],[136, -22],[119, 13]], '#25253a');        // tepi kanan
+  pg([[-90,-116],[90,-116],[72,-106],[-72,-106]], '#1f1f2b');       // atas headband
+
+  // Bagian 8 ─ Mulut — quadratic bezier curve
+  ctx.beginPath();
+  ctx.moveTo(-24, 50);
+  ctx.quadraticCurveTo(0, 62, 24, 50);
+  ctx.strokeStyle = '#5c2820';
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Bagian 9 ─ Tangan (Hands)
+  // Kanan: digambar langsung (x positif)
+  // Kiri:  [TRANSFORMASI: SCALE(-1, 1)] refleksi horizontal
+
+  // Tangan kanan
+  pg([[70, 107],[104, 103],[113, 128],[95, 146],[70, 140]], '#b47068'); // kulit
+  pg([[70, 107],[104, 103],[97, 92],[66, 96]], '#1d1d28');               // lengan baju
+
+  // Tangan kiri — via SCALE mirror
+  ctx.save();
+  ctx.scale(-1, 1); // [TRANSFORMASI: SCALE] refleksi horizontal
+  pg([[70, 107],[104, 103],[113, 128],[95, 146],[70, 140]], '#c07870'); // kulit
+  pg([[70, 107],[104, 103],[97, 92],[66, 96]], '#181820');               // lengan baju
+  ctx.restore();
+
+  // Bagian 10 ─ Kaki (Feet)
+  // Kanan: digambar langsung
+  // Kiri:  [TRANSFORMASI: SCALE(-1, 1)] refleksi horizontal
+
+  // Kaki kanan
+  pg([[24, 197],[59, 194],[63, 214],[21, 217]], '#1d1d26');
+
+  // Kaki kiri — via SCALE mirror
+  ctx.save();
+  ctx.scale(-1, 1); // [TRANSFORMASI: SCALE] refleksi horizontal
+  pg([[24, 197],[59, 194],[63, 214],[21, 217]], '#141418');
+  ctx.restore();
+
+  // Akhir dari blok translate(300,300) + clip
+  ctx.restore();
+
+</script>
+</body>
+</html>
